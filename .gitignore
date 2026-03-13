@@ -1,0 +1,13 @@
+# valuable
+.env
+# Telethon
+*.session
+*.session-journal
+# database
+*.db
+# Python folders (trash)
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
