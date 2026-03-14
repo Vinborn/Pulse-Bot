@@ -1,4 +1,4 @@
-from sqlalchemy import select, delete, Sequence
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database.models.channel import Channel
@@ -33,15 +33,7 @@ class ChannelRepository:
 
     async def set_last_message_id(self, channel_id: int, message_id: int):
         channel = await self.get_channel_by_id(channel_id)
-        channel.last_message_id = message_id
+        if message_id > channel.last_message_id:
+            channel.last_message_id = message_id
 
         await self.__session.commit()
-
-    # async def get_last_message_id(self, channel_id: int):
-    #     channel = await self.get_channel_by_id(channel_id)
-    #     return channel.last_message_id
-
-    # async def delete_channel(self, channel_id: int):
-    #     query = delete(Channel).where(Channel.tg_id == channel_id)
-    #     await self.__session.execute(query)
-    #     await self.__session.commit()
