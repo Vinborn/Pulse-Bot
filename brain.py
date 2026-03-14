@@ -24,8 +24,8 @@ SYSTEM_PROMPT = """
 """
 
 
-async def summary(channel_title: str, post_text: str):
-    user_prompt = f"Channel: {channel_title}\nPost's text:\n{post_text}"
+async def make_digest(channel_title: str, post_content: str):
+    user_prompt = f"Channel: {channel_title}\nPost's text:\n{post_content}"
 
     try:
         response = await client.chat.completions.create(
