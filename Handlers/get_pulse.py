@@ -9,17 +9,16 @@ from Repositories.post import PostRepository
 from Repositories.subscription import UserSubscriptionRepository
 from Repositories.summary import SummaryRepository
 
-from scraper import collect_posts_from_channel, fetch_text_from_channel
-from brain import summary
+from scraper import collect_posts_from_channel, fetch_content_from_posts
+from brain import make_digest
 
 router = Router()
 
 @router.message(F.text == "GET PULSE")
 async def get_post_limit(message: types.Message, channel_repo: ChannelRepository):
     channels = await channel_repo.get_list()
-    channels = channels.all()
 
-    if len(channels) > 0:
+    if channels:
         await message.answer(
             text="Select the number of recent posts to analyze:",
             reply_markup=post_limit_kb()
@@ -40,43 +39,55 @@ async def get_pulse(
     channels = await subscription_repo.get_sub_channels(user_id)
 
     await update.answer("Getting data...")
-    output_text = ""
+    final_report = ""
+
     for channel in channels:
-        # Собираем количество постов, которие указал юзер
-        await collect_posts_from_channel(channel_repo, post_repo, channel.tg_id, limit=callback_data.limit)
+        final_report += f"*{channel.title}*:\n"
 
-        last_msg_id = channel.last_message_id
+        # Збираємо пости, кількість яких вказав юзер
+        all_ids = await collect_posts_from_channel(channel_repo, post_repo, channel.tg_id, limit=callback_data.limit)
 
-        # Проверяем, есть ли уже готовый дайджест в БД
-        existing_summary = await summary_repo.get_summary_by_post_id(last_msg_id)
+        # Знаходимо пости, які з них нові, а які вже оброблені
+        new_ids = await post_repo.filter_unprocessed_posts(channel.tg_id, new_post_ids=all_ids)
+        old_ids = [post_id for post_id in all_ids if post_id not in new_ids]
 
-        if existing_summary is not None:
-            if existing_summary.last_included_post_id == last_msg_id:
-                # Добавляем уже готовий дайджест в сообщение
-                output_text += (f"(From archive) **{channel.title}**\n"
-                    f"*{existing_summary.topic}*:\n"
-                    f"{existing_summary.content}\n\n")
-                continue  # Переходим к следующему каналу, не дергая ИИ
+        # Обробляємо СТАРЕ
+        if old_ids:
+            # Дістаємо всі унікальні дайджести з оброблених постів
+            summaries = await summary_repo.get_summaries_by_post_ids(old_ids)
 
-        # Если id последнего поста устарело или по id конкретного поста нету дайджеста, то идем обновлять/добавлять данние
-        raw_post_text = await fetch_text_from_channel(post_repo, channel.tg_id)
-        digest = await summary(channel_title=channel.title, post_text=raw_post_text)
+            final_report += f"*(From archive)*\n"
+            for summary in summaries:
+                final_report += (f"{summary.topic}:\n"
+                                 f"{summary.content}\n\n")
 
-        time = await post_repo.get_datetime_by_tg_id(last_msg_id)
+        # Обробляємо НОВЕ
+        if new_ids:
+            # Є нові пости, тому відправляємо їх до LLM
+            # Отримуємо контент по списку нових постів й відправляємо до LLM
+            raw_post_content = await fetch_content_from_posts(post_repo=post_repo, post_ids=new_ids)
+            digest = await make_digest(channel_title=channel.title, post_content=raw_post_content)
 
-        # Сохраняем в базу
-        await summary_repo.create_summary(
-            channel_id=channel.tg_id,
-            topic=digest["topic"],
-            content=digest["result"],
-            last_included_post_id=last_msg_id,
-            summary_date=time,
-            created_at=datetime.now()
-        )
-        # Добавляем только что созданий дайджест в сообщение
-        output_text += (f"**{channel.title}**\n"
-            f"*{digest["topic"]}*:\n"
-            f"{digest["result"]}\n\n")
+            # Вибираємо останній id поста, який ми тільки що обробили
+            last_post_id = max(new_ids)
+
+            # Це нам більше не потрібно, бо ШІ сама поверне summary_date
+            time = await post_repo.get_datetime(last_post_id)
+
+            # Зберігаємо в базу
+            await summary_repo.create_summary(
+                channel_id=channel.tg_id,
+                topic=digest["topic"],
+                content=digest["result"],
+                last_included_post_id=last_post_id,
+                summary_date=time,
+                created_at=datetime.now()
+            )
+
+            # Додаємо щойно створений дайджест до повідомлення
+            final_report += (f"🔥 *Latest news*\n"
+                            f"{digest["topic"]}:\n"
+                            f"{digest["result"]}\n\n")
 
     # Отвечаем юзеру
-    await update.message.edit_text(text=output_text, parse_mode="Markdown")
+    await update.message.edit_text(text=final_report, parse_mode="Markdown")
