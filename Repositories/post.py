@@ -44,16 +44,14 @@ class PostRepository:
         result = await self.__session.execute(statement)
         return result.scalars().all()
 
-    async def filter_unprocessed_posts(self, channel_id: int, new_posts: list[Post]) -> list[Post]:
+    async def filter_unprocessed_posts(self, channel_id: int, new_post_ids: list[int]) -> list[int]:
         """
         Приймає список постів з Telegram.
         Повертає список лише тих ПОСТІВ, які ЩЕ НЕ прив'язані до жодного дайджесту.
         """
         # Якщо прийшов порожній список, одразу повертаємо порожній
-        if not new_posts:
+        if not new_post_ids:
             return []
-
-        new_post_ids = [post.tg_id for post in new_posts]
 
         # Шукаємо "старі" пости, які вже є в базі
         statement = (
@@ -72,9 +70,9 @@ class PostRepository:
         existing_ids = result.scalars().all()
 
         # Відсіюємо оброблені пости від нових
-        unprocessed_posts = [
-            post for post in new_posts
-            if post.tg_id not in existing_ids
+        unprocessed_ids = [
+            post_id for post_id in new_post_ids
+            if post_id not in existing_ids
         ]
 
-        return unprocessed_posts
+        return unprocessed_ids
