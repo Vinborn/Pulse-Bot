@@ -13,11 +13,6 @@ class SummaryRepository:
     def __init__(self, session: AsyncSession):
         self.__session = session
 
-    async def get_summary_by_post_id(self, post_id: int) -> Summary | None:
-        statement = select(Summary).where(Summary.last_included_post_id == post_id)
-        result = await self.__session.execute(statement)
-        return result.scalar()
-
     async def create_summary(self, channel_id: int, topic: str, content: str, last_included_post_id: int, summary_date: date, created_at: datetime):
         summary = Summary(
             channel_id=channel_id,
@@ -30,36 +25,30 @@ class SummaryRepository:
         self.__session.add(summary)
         await self.__session.commit()
 
-    async def get_summaries_by_channel_id(self, channel_id: int) -> ScalarResult[Summary]:
-        statement = select(Summary).where(Summary.channel_id == channel_id)
-        return await self.__session.scalars(statement)
+    async def get_summary_by_post_id(self, post_id: int) -> Summary | None:
+        statement = select(Summary).where(Summary.last_included_post_id == post_id)
+        result = await self.__session.execute(statement)
+        return result.scalar()
 
-    async def check_for_existing_summary(self, channel_id: int, post_ids: list[int]) -> Summary | None:
+    async def get_summaries_by_channel_id(self, channel_id: int) -> list[Summary]:
+        statement = select(Summary).where(Summary.channel_id == channel_id)
+        result = await self.__session.execute(statement)
+        return result.scalars().all()
+
+    async def get_summaries_by_post_ids(self, post_ids: list[int]) -> list[Summary]:
+        """Повертає унікальний список Summary для списку ID постів."""
+        if not post_ids:
+            return []
+
         statement = (
             select(Summary)
             # Приєднуємо таблицю зв'язків SummaryPost
-            .join(SummaryPost, Summary.id == SummaryPost.summary_id)
-            # Приєднуємо таблицю Post, щоб перевірити їхні реальні Telegram ID
-            .join(Post, SummaryPost.post_id == Post.tg_id)
-            # Фільтруємо за каналом та списком постів
-            .where(
-                Post.channel_id == channel_id,
-                Post.tg_id.in_(post_ids)
-            )
-            # Нам достатньо знайти хоча б один такий дайджест
-            .limit(1)
+            .join(SummaryPost)
+            # Фільтруємо списком постів
+            .where(Summary.last_included_post_id.in_(post_ids))
+            .distinct()
         )
 
         result = await self.__session.execute(statement)
 
-        # Поверне об'єкт Summary або None, якщо нічого не знайдено
-        return result.scalar_one_or_none()
-
-    # async def get_latest_summary(self, channel_id: int) -> Summary:
-    #     statement = (
-    #         select(Summary)
-    #         .where(Summary.channel_id == channel_id)
-    #         .order_by(Summary.summary_date.desc())
-    #         .limit(1)
-    #     )
-    #     return await self.__session.scalar(statement)
+        return result.scalars().all()
