@@ -15,9 +15,9 @@ async def join_channel(link: str):
 
 # получает текст постов из бази
 async def fetch_content_from_posts(post_repo: PostRepository, post_ids: list[int]) -> str:
-    """Збирає текстовий контент зі списку постів, розділяючи мітками POST ID"""
+    """Збирає текстовий контент зі списку постів, розділяючи мітками [POST ID]"""
     content = ""
-    async for post_id in post_ids:
+    for post_id in post_ids:
         # Отримуємо контент з посту
         text = await post_repo.get_post_content(post_id)
 
@@ -25,8 +25,7 @@ async def fetch_content_from_posts(post_repo: PostRepository, post_ids: list[int
         if text == "media":
             continue
 
-        content += f"[POST ID {post_id}]\n"
-        content += text + '\n'
+        content += f"[POST ID {post_id}]\n{text}\n"
 
     return content
 
@@ -53,7 +52,7 @@ async def collect_posts_from_channel(channel_repo: ChannelRepository, post_repo:
         await channel_repo.set_last_message_id(channel_tg_id, ch_post.id)
 
     new_posts = await post_repo.get_posts_list(channel_tg_id, limit=limit)
-    new_post_ids = [post.id for post in new_posts]
+    new_post_ids = [post.tg_id for post in new_posts]
     return new_post_ids
 
 async def get_channel_title(channel_link: str):
