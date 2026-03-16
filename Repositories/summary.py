@@ -1,13 +1,11 @@
 from datetime import datetime
 from datetime import date
 
-from sqlalchemy import select, ScalarResult
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database.models.summary import Summary
-from Database.models.post import Post
 from Database.models.summary_post import SummaryPost
-
 
 class SummaryRepository:
     def __init__(self, session: AsyncSession):
