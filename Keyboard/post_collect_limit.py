@@ -9,12 +9,12 @@ def post_limit_kb():
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(
-        text="👟 1 post",
-        callback_data=PostLimitCBData(limit=1).pack()
+        text="👟 3 posts",
+        callback_data=PostLimitCBData(limit=3).pack()
     ))
     keyboard.row(InlineKeyboardButton(
-        text="⏱️ 5 posts",
-        callback_data=PostLimitCBData(limit=5).pack()
+        text="⏱️ 7 posts",
+        callback_data=PostLimitCBData(limit=7).pack()
     ))
     keyboard.row(InlineKeyboardButton(
         text="📊 10 posts",
