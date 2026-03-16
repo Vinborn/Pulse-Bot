@@ -48,7 +48,7 @@ async def collect_posts_from_channel(channel_repo: ChannelRepository, post_repo:
                 content=ch_post.message,
                 created_at=ch_post.date
             )
-            # встановлюємо id останнього поста, коли це ТЕКСТ
+        # встановлюємо id останнього поста
         await channel_repo.set_last_message_id(channel_tg_id, ch_post.id)
 
     new_posts = await post_repo.get_posts_list(channel_tg_id, limit=limit)

@@ -56,9 +56,9 @@ async def get_pulse(
             # Дістаємо всі унікальні дайджести з оброблених постів
             summaries = await summary_repo.get_summaries_by_post_ids(old_ids)
 
-            final_report += f"*(From archive)*\n"
+            final_report += f"📜 _(From archive):_\n"
             for summary in summaries:
-                final_report += (f"{summary.topic}:\n"
+                final_report += (f"*{summary.topic}*\n"
                                  f"{summary.content}\n\n")
 
         # Обробляємо НОВЕ
@@ -66,21 +66,29 @@ async def get_pulse(
             # Є нові пости, тому відправляємо їх до LLM
             # Отримуємо контент по списку нових постів
             raw_content = await fetch_content_from_posts(post_repo=post_repo, post_ids=new_ids)
+
+            # Текстового контенту немає, переходимо до наступного каналу
+            if not raw_content:
+                continue
+
             # Отримуємо дайджест по контенту
             digest = await make_digest(channel_title=channel.title, raw_content=raw_content)
 
-            # Беремо дату дайджесту (MM-DD-YYYY)
-            digest_date = digest["summary_date"]
+            # Беремо дату дайджесту (YYYY-MM-DD)
+            try:
+                digest_date = datetime.strptime(digest["summary_date"], '%Y-%m-%d')
+            except ValueError:
+                digest_date = datetime.now()
 
             # Обробляємо всі події в дайджесті
             events = digest["events"]
             if events:
-                final_report += f"🔥 *Latest news*\n"
+                final_report += f"🔥 *Latest news:*\n"
 
                 # Додаємо дайджест кожної події до бази
                 for event in events:
                     # Останній пост цієї події
-                    last_post_id = max(event["list"])
+                    last_post_id = int(max(event["list"]))
 
                     await summary_repo.create_summary(
                         channel_id=channel.tg_id,
@@ -92,12 +100,10 @@ async def get_pulse(
                     )
 
                     # Додаємо щойно створений дайджест до повідомлення
-                    final_report += (f"{event["topic"]}:\n"
-                                     f"{event["result"]}\n")
+                    final_report += (f"_{event["topic"]}_\n"
+                                     f"{event["result"]}\n\n")
 
         final_report += "\n"
-
-
 
     # Отвечаем юзеру
     await update.message.edit_text(text=final_report, parse_mode="Markdown")

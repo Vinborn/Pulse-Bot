@@ -1,7 +1,6 @@
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import ScalarResult
 
 from Database import Summary
 
@@ -25,7 +24,7 @@ def generate_history_list_kb(channels):
 
     return keyboard.as_markup()
 
-def generate_channel_pulse_history_kb(summaries: ScalarResult[Summary]):
+def generate_channel_pulse_history_kb(summaries: list[Summary]):
     keyboard = InlineKeyboardBuilder()
 
     for summary in summaries:

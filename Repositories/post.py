@@ -14,7 +14,7 @@ class PostRepository:
         statement = select(Post.content).where(post_id == Post.tg_id)
         return await self.__session.scalar(statement)
 
-    async def get_post_by_tg_id(self, tg_id: int):
+    async def get_post_by_tg_id(self, tg_id: int) -> Post:
         statement = select(Post).where(tg_id == Post.tg_id)
         return await self.__session.scalar(statement)
 
@@ -28,7 +28,7 @@ class PostRepository:
         if not post:
             await self.create_post(channel_id, tg_id, content, created_at)
         else:
-            post.text = content
+            post.content = content
 
         await self.__session.commit()
 

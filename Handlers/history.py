@@ -33,7 +33,6 @@ async def history(update: types.Message | types.CallbackQuery, subscription_repo
 @router.callback_query(ChannelPulseHistoryCBData.filter()) # когда юзер нажал на канал из списка
 async def channel_pulse_history_list(callback_query: types.CallbackQuery, callback_data: ChannelPulseHistoryCBData, summary_repo: SummaryRepository):
     summaries = await summary_repo.get_summaries_by_channel_id(callback_data.channel_id)
-    summaries = summaries.all()
 
     if summaries:
         await callback_query.message.edit_text(
