@@ -64,30 +64,40 @@ async def get_pulse(
         # Обробляємо НОВЕ
         if new_ids:
             # Є нові пости, тому відправляємо їх до LLM
-            # Отримуємо контент по списку нових постів й відправляємо до LLM
-            raw_post_content = await fetch_content_from_posts(post_repo=post_repo, post_ids=new_ids)
-            digest = await make_digest(channel_title=channel.title, post_content=raw_post_content)
+            # Отримуємо контент по списку нових постів
+            raw_content = await fetch_content_from_posts(post_repo=post_repo, post_ids=new_ids)
+            # Отримуємо дайджест по контенту
+            digest = await make_digest(channel_title=channel.title, raw_content=raw_content)
 
-            # Вибираємо останній id поста, який ми тільки що обробили
-            last_post_id = max(new_ids)
+            # Беремо дату дайджесту (MM-DD-YYYY)
+            digest_date = digest["summary_date"]
 
-            # Це нам більше не потрібно, бо ШІ сама поверне summary_date
-            time = await post_repo.get_datetime(last_post_id)
+            # Обробляємо всі події в дайджесті
+            events = digest["events"]
+            if events:
+                final_report += f"🔥 *Latest news*\n"
 
-            # Зберігаємо в базу
-            await summary_repo.create_summary(
-                channel_id=channel.tg_id,
-                topic=digest["topic"],
-                content=digest["result"],
-                last_included_post_id=last_post_id,
-                summary_date=time,
-                created_at=datetime.now()
-            )
+                # Додаємо дайджест кожної події до бази
+                for event in events:
+                    # Останній пост цієї події
+                    last_post_id = max(event["list"])
 
-            # Додаємо щойно створений дайджест до повідомлення
-            final_report += (f"🔥 *Latest news*\n"
-                            f"{digest["topic"]}:\n"
-                            f"{digest["result"]}\n\n")
+                    await summary_repo.create_summary(
+                        channel_id=channel.tg_id,
+                        topic=event["topic"],
+                        content=event["result"],
+                        last_included_post_id=last_post_id,
+                        summary_date=digest_date,
+                        created_at=datetime.now()
+                    )
+
+                    # Додаємо щойно створений дайджест до повідомлення
+                    final_report += (f"{event["topic"]}:\n"
+                                     f"{event["result"]}\n")
+
+        final_report += "\n"
+
+
 
     # Отвечаем юзеру
     await update.message.edit_text(text=final_report, parse_mode="Markdown")
