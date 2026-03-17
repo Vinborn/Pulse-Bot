@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from Database.models.summary import Summary
 from Database.models.summary_post import SummaryPost
+from Database.models.post import Post
 
 class SummaryRepository:
     def __init__(self, session: AsyncSession):
@@ -21,7 +22,7 @@ class SummaryRepository:
             created_at=created_at
         )
         self.__session.add(summary)
-        await self.__session.commit()
+        return summary
 
     async def get_summary_by_post_id(self, post_id: int) -> Summary | None:
         statement = select(Summary).where(Summary.last_included_post_id == post_id)
@@ -50,3 +51,44 @@ class SummaryRepository:
         result = await self.__session.execute(statement)
 
         return result.scalars().all()
+
+    async def save_new_summaries(self, channel_id: int, events: list[dict]):
+        """
+        Атомарно зберігає нові дайджести та створює зв'язки з усіма відповідними постами.
+        """
+        all_summaries = []
+        for event in events:
+            # Беремо дату івента (YYYY-MM-DD)
+            try:
+                event_date = datetime.strptime(event["event_date"], '%Y-%m-%d')
+            except ValueError:
+                event_date = datetime.now()
+
+            # Збираємо список int ID постів з івенту
+            post_ids = [int(post) for post in event["list"]]
+            # Отримуємо останній ID поста що міститься в дайджесті
+            last_included_post_id = (max(post_ids))
+
+            # Створюємо об'єкт дайджесту
+            summary = await self.create_summary(channel_id=channel_id, topic=event["topic"], content=event["result"], last_included_post_id=last_included_post_id, summary_date=event_date, created_at=datetime.now())
+            # Виконуємо flush, щоб отримати ID дайджесту, не закриваючи транзакцію
+            await self.__session.flush()
+
+            # Знаходимо Telegram ID постів у нашій БД
+            statement = select(Post.tg_id).where(
+                Post.channel_id == channel_id,
+                Post.tg_id.in_(post_ids)
+            )
+            result = await self.__session.execute(statement)
+            db_post_ids = result.scalars().all()
+
+            # Створюємо записи зв'язків
+            summary_links = [
+                SummaryPost(summary_id=summary.id, post_id=p_id)
+                for p_id in db_post_ids
+            ]
+
+            # Додаємо зв'язки івенту в список всіх зв'язків
+            all_summaries.extend(summary_links)
+        self.__session.add_all(all_summaries)
+        await self.__session.commit()
