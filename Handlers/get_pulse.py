@@ -15,8 +15,9 @@ from brain import make_digest
 router = Router()
 
 @router.message(F.text == "GET PULSE")
-async def get_post_limit(message: types.Message, channel_repo: ChannelRepository):
-    channels = await channel_repo.get_list()
+async def get_post_limit(message: types.Message, subscription_repo: UserSubscriptionRepository):
+    user_id = message.from_user.id
+    channels = await subscription_repo.get_sub_channels(user_id)
 
     if channels:
         await message.answer(
