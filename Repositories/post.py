@@ -20,7 +20,8 @@ class PostRepository:
 
     async def get_datetime(self, tg_id: int) -> datetime:
         statement = select(Post.created_at).where(Post.tg_id == tg_id)
-        return await self.__session.scalar(statement)
+        result = await self.__session.execute(statement)
+        return result.scalar_one_or_none()
 
     async def create_or_update_post(self, channel_id: int, tg_id: int, content: str, created_at: datetime):
         post = await self.get_post_by_tg_id(tg_id)
