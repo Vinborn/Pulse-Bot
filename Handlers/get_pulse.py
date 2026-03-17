@@ -75,34 +75,18 @@ async def get_pulse(
             # Отримуємо дайджест по контенту
             digest = await make_digest(channel_title=channel.title, raw_content=raw_content)
 
-            # Беремо дату дайджесту (YYYY-MM-DD)
-            try:
-                digest_date = datetime.strptime(digest["summary_date"], '%Y-%m-%d')
-            except ValueError:
-                digest_date = datetime.now()
-
             # Обробляємо всі події в дайджесті
             events = digest["events"]
             if events:
-                final_report += f"🔥 *Latest news:*\n"
+                final_report += f"🔥 _Latest news:_\n"
 
-                # Додаємо дайджест кожної події до бази
                 for event in events:
-                    # Останній пост цієї події
-                    last_post_id = int(max(event["list"]))
-
-                    await summary_repo.create_summary(
-                        channel_id=channel.tg_id,
-                        topic=event["topic"],
-                        content=event["result"],
-                        last_included_post_id=last_post_id,
-                        summary_date=digest_date,
-                        created_at=datetime.now()
-                    )
-
-                    # Додаємо щойно створений дайджест до повідомлення
-                    final_report += (f"_{event["topic"]}_\n"
+                    # Додаємо щойно створений дайджест події до повідомлення
+                    final_report += (f"*{event["topic"]}*\n"
                                      f"{event["result"]}\n\n")
+
+                # Додаємо всі дайджести всіх подій до бази
+                await summary_repo.save_new_summaries(channel_id=channel.tg_id, events=events)
 
         final_report += "\n"
 
