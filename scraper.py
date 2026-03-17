@@ -25,7 +25,9 @@ async def fetch_content_from_posts(post_repo: PostRepository, post_ids: list[int
         if text == "media":
             continue
 
-        content += f"[POST ID {post_id}]\n{text}\n"
+        post_date = (await post_repo.get_datetime(post_id)).date()
+
+        content += f"[POST ID {post_id} {post_date}]\n{text}\n"
 
     return content
 
