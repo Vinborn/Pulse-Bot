@@ -41,7 +41,7 @@ async def get_pulse(
     final_report = ""
 
     for channel in channels:
-        final_report += f"*{channel.title}*:\n"
+        final_report += f"📌  <b>{channel.title}</b>:\n"
 
         # Збираємо пости, кількість яких вказав юзер
         all_ids = await collect_posts_from_channel(channel_repo, post_repo, channel.tg_id, limit=callback_data.limit)
@@ -55,9 +55,9 @@ async def get_pulse(
             # Дістаємо всі унікальні дайджести з оброблених постів
             summaries = await summary_repo.get_summaries_by_post_ids(old_ids)
 
-            final_report += f"📜 _(From archive):_\n"
+            final_report += f"📜 <i>From archive:</i>\n"
             for summary in summaries:
-                final_report += (f"*{summary.topic}*\n"
+                final_report += (f" • <b>{summary.topic}</b>\n"
                                  f"{summary.content}\n\n")
 
         # Обробляємо НОВЕ
@@ -76,19 +76,19 @@ async def get_pulse(
             # Обробляємо всі події в дайджесті
             events = digest["events"]
             if events:
-                final_report += f"🔥 _Latest news:_\n"
+                final_report += f"🔥 <i>Latest news:</i>\n"
 
                 for event in events:
                     # Додаємо щойно створений дайджест події до повідомлення
-                    final_report += (f"*{event["topic"]}*\n"
+                    final_report += (f" • <b>{event["topic"]}</b>\n"
                                      f"{event["result"]}\n\n")
 
                 # Додаємо всі дайджести всіх подій до бази
                 await summary_repo.save_new_summaries(channel_id=channel.tg_id, events=events)
 
-        final_report += "\n"
+        final_report += '\n'
 
-    final_report += "\nЗалишайся на пульсі з @vantage_pulse_bot! ⚡️"
+    final_report += "<i>Залишайся на пульсі з @vantage_pulse_bot!</i>⚡️"
 
     # Отвечаем юзеру
-    await callback.message.edit_text(text=final_report, parse_mode="Markdown")
+    await callback.message.edit_text(text=final_report, parse_mode="HTML")
