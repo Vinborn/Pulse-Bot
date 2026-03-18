@@ -18,15 +18,15 @@ async def history(update: types.Message | types.CallbackQuery, subscription_repo
     if isinstance(update, types.Message):
         if channels:
             await update.answer(
-                "Channel List:",
+                "Це архів знань. Тут зібрані всі дайджести, які я готував для тебе раніше. Що саме хочеш переглянути?",
                 reply_markup=generate_history_list_kb(channels)
             )
         else:
-            await update.answer("Channel list is empty! Add channel first!")
+            await update.answer("Каналів не знайдено! Спочатку додайте канал.")
     # или юзер нажал кнопку "Back"
     else:
         await update.message.edit_text(
-            "Channel List:",
+            "Це архів знань. Тут зібрані всі дайджести, які я готував для тебе раніше. Що саме хочеш переглянути?",
             reply_markup=generate_history_list_kb(channels)
         )
 
@@ -48,9 +48,9 @@ async def pulse_info(callback_query: types.CallbackQuery, callback_data: PulseIn
     summary = await summary_repo.get_summary_by_post_id(callback_data.post_id)
 
     await callback_query.message.edit_text(
-        f"**Topic: «{summary.topic}»**\n"
-        f"*Content*: {summary.content}\n"
-        f"Pulse date: {summary.summary_date.strftime('%m-%d-%Y')}",
+        f"*Тема: «{summary.topic}»*\n"
+        f"{summary.content}\n"
+        f"_Дата дайджесту: {summary.summary_date.strftime('%m-%d-%Y')}_",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [

@@ -17,7 +17,10 @@ CHANNEL_RE = r"(?:https?://t\.me/|@)([a-zA-Z0-9_]{5,})"
 @router.message(F.text == "ADD")
 async def add(message: types.Message, state: FSMContext):
     await state.set_state(AddChannel.waiting_for_link)
-    await message.answer("Give me a name and I'll keep track on all his messages")
+    await message.answer(
+        "Готовий розширити твій інформаційний потік!\n"
+        "Надішліть мені посилання на Telegram-канал (наприклад, @channel_name або t.me/link)."
+    )
 
 # сработает ТОЛЬКО в состоянии ожидания ссылки
 @router.message(AddChannel.waiting_for_link)
@@ -27,7 +30,7 @@ async def handle_channel_link(message: types.Message, state: FSMContext, channel
 
     if channel_match:
         link = channel_match.group(0)
-        await message.answer(f"Start channel processing...")
+        await message.answer(f"Почав обробку каналу...")
 
         # логика скрапера, надо винести в фоновою задачу
         await join_channel(link)
@@ -41,12 +44,12 @@ async def handle_channel_link(message: types.Message, state: FSMContext, channel
 
         if not user_subscribed:
             await subscription_repo.create_subscription(user_id=user_id, channel_id=channel_tg_id)
-            await message.answer("Channel successfully added!")
+            await message.answer("Канал успішно додано!")
         else:
-            await message.answer("Channel already exists!")
+            await message.answer("Канал вже існує!")
 
     else:
-        await message.answer("Link doesn't exist!")
+        await message.answer("Такого каналу не існує або він закритий!")
 
     # сбрасиваем состояние
     await state.clear()

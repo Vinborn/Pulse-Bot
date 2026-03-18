@@ -19,25 +19,25 @@ async def get_post_limit(message: types.Message, subscription_repo: UserSubscrip
 
     if channels:
         await message.answer(
-            text="Select the number of recent posts to analyze:",
+            text="👇Вибери кількість постів які мені потрібно проаналізувати:",
             reply_markup=post_limit_kb()
         )
     else:
-        await message.answer("No channels found! Please add a channel first.")
+        await message.answer("Каналів для аналізу не знайдено! Спочатку додайте канал.")
 
 @router.callback_query(PostLimitCBData.filter())
 async def get_pulse(
-        update: types.CallbackQuery,
+        callback: types.CallbackQuery,
         callback_data: PostLimitCBData,
         channel_repo: ChannelRepository,
         post_repo: PostRepository,
         summary_repo: SummaryRepository,
         subscription_repo: UserSubscriptionRepository
 ):
-    user_id = update.from_user.id
+    user_id = callback.from_user.id
     channels = await subscription_repo.get_sub_channels(user_id)
 
-    await update.answer("Getting data...")
+    await callback.answer("Аналізую свіжі пости...")
     final_report = ""
 
     for channel in channels:
@@ -88,5 +88,7 @@ async def get_pulse(
 
         final_report += "\n"
 
+    final_report += "\nЗалишайся на пульсі з @vantage_pulse_bot! ⚡️"
+
     # Отвечаем юзеру
-    await update.message.edit_text(text=final_report, parse_mode="Markdown")
+    await callback.message.edit_text(text=final_report, parse_mode="Markdown")

@@ -19,15 +19,15 @@ async def channel_list(update: types.Message | types.CallbackQuery, subscription
     if isinstance(update, types.Message):
         if channels:
             await update.answer(
-            "Channel List:",
+            "Ось канали, на які я підписан. Ти можеш керувати підписками або переглянути статистику кожного.",
                 reply_markup=generate_channel_list_kb(channels)
             )
         else:
-            await update.answer("Channel list is empty! Add channel first!")
+            await update.answer("Список каналів порожній! Спочатку додайте канал")
     # или юзер нажал кнопку "Back"
     else:
         await update.message.edit_text(
-            "Channel List:",
+            "Ось канали, на які я підписан. Ти можеш керувати підписками або переглянути статистику кожного.",
             reply_markup=generate_channel_list_kb(channels)
         )
 
@@ -38,7 +38,7 @@ async def channel_info(callback: types.CallbackQuery, callback_data: ChannelInfo
 
     # переписиваем прошлое сообщение от бота, информацией о конкретном канале
     await callback.message.edit_text(
-        text=f"Title: «{channel.title}»\nLink: {channel.tg_link}",
+        text=f"Назва каналу: «{channel.title}»\nОригінальне посилання: {channel.tg_link}",
         # создаеться кнопка назад, которая возвращет тебя к основному листу
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
@@ -59,7 +59,7 @@ async def delete_confirm(callback: types.CallbackQuery, callback_data: ChannelDe
 
     # удостоверяемся что юзер нажал не случайно
     await callback.message.edit_text(
-        text=f"Do you really want to delete «{channel.title}»?",
+        text=f"Чи точно ви хочете видалити канал «{channel.title}»?",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -83,16 +83,16 @@ async def channel_delete(callback: types.CallbackQuery, subscription_repo: UserS
 
     # удаляем канал из User Subscriptions, не затрагивая таблицу "channels"
     await subscription_repo.delete_subscription(user_id=user_id, channel_id=ch_id)
-    await callback.answer("Channel has been successfully deleted!")
+    await callback.answer("Канал успішно видалено!")
 
     new_channels = await subscription_repo.get_sub_channels(user_id)
 
     # показиваем новий список каналов, если список не пустой
     if new_channels:
         await callback.message.edit_text(
-            "Channel List:",
+            "Ось канали, на які я підписан. Ти можеш керувати підписками або переглянути статистику кожного.",
             reply_markup=generate_channel_list_kb(new_channels))
 
     # а если нету ничего в списке, то просим добавить канал
     else:
-        await callback.message.edit_text("Channel list is empty! Add channel first!")
+        await callback.message.edit_text("Список каналів порожній! Спочатку додайте канал")
