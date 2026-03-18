@@ -8,6 +8,7 @@ Pulse Bot is an advanced asynchronous Telegram bot designed to aggregate, filter
 * **⚡ Smart Caching (Cache-Aside Pattern):** To optimize API costs and response times, the bot caches generated summaries. If multiple users request a digest for the same channel on the same day, the bot serves the cached version.
 * **📂 Personalized Subscriptions:** Users manage their own list of favorite channels. The database utilizes a robust Many-to-Many architecture (`user_subscriptions` junction table).
 * **🕰️ Digest History:** Users can access a history of previously generated summaries for their subscribed channels.
+* **📊 Data Flow:** Scraper => Filter => Brain (AI) => DB & User
 
 ## 🛠️ Tech Stack
 
@@ -22,7 +23,7 @@ Pulse Bot is an advanced asynchronous Telegram bot designed to aggregate, filter
 ```text
 Pulse-Bot/
 ├── Database/               # Database logic and connection
-│   └── models/             # SQLAlchemy models (User, Channel, Posts, Summary, Subscriptions)
+│   └── models/             # SQLAlchemy models (User, Channel, Posts, Summary, Summary Posts, Subscriptions)
 ├── Handlers/               # Aiogram routers and event handlers
 ├── Keyboard/               # Inline and Reply keyboard definitions
 ├── Middleware/             # Dependency injection and session handling
