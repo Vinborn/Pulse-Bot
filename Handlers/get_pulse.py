@@ -8,7 +8,7 @@ from Repositories.subscription import UserSubscriptionRepository
 from Repositories.summary import SummaryRepository
 
 from scraper import collect_posts_from_channel, fetch_content_from_posts
-from brain import make_digest
+from AI.brain import make_digest
 
 router = Router()
 
