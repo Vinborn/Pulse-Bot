@@ -5,7 +5,7 @@ from Repositories.post import PostRepository
 from Repositories.channel import ChannelRepository
 from config import config_p
 
-tg_client = TelegramClient('anon', config_p.api_id, config_p.api_hash)
+tg_client = TelegramClient('pulse_worker', config_p.api_id, config_p.api_hash)
 
 async def join_channel(link: str):
     try:
