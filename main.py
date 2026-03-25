@@ -23,7 +23,6 @@ async def main():
     register_routes(dp)
 
     await start_scraper()
-    print("Telethon started...")
 
     await dp.start_polling(bot)
 
