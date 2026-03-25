@@ -30,7 +30,7 @@ class SummaryRepository:
         return result.scalar()
 
     async def get_summaries_by_channel_id(self, channel_id: int) -> list[Summary]:
-        statement = select(Summary).where(Summary.channel_id == channel_id)
+        statement = select(Summary).where(Summary.channel_id == channel_id).order_by(Summary.summary_date.desc())
         result = await self.__session.execute(statement)
         return result.scalars().all()
 
