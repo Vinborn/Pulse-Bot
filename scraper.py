@@ -1,17 +1,22 @@
-from telethon import TelegramClient
+import sys
+
+from telethon import TelegramClient, errors
 from telethon.tl.functions.channels import JoinChannelRequest
 
 from Repositories.post import PostRepository
 from Repositories.channel import ChannelRepository
 from config import config_p
 
-tg_client = TelegramClient('pulse_worker', config_p.api_id, config_p.api_hash)
+SESSION_NAME = config_p.session_name
+
+tg_client = TelegramClient(session=SESSION_NAME, api_id=config_p.api_id, api_hash=config_p.api_hash)
 
 async def join_channel(link: str):
     try:
         await tg_client(JoinChannelRequest(link))
-    except ValueError:
-        print(f"Failed to join channel {link}")
+        return None
+    except Exception as e:
+        return str(e)
 
 # получает текст постов из бази
 async def fetch_content_from_posts(post_repo: PostRepository, post_ids: list[int]) -> str:
@@ -66,4 +71,21 @@ async def get_channel_id(channel_link: str):
     return channel.id
 
 async def start_scraper():
-    await tg_client.start()
+    # Безпечно завершуємо роботу програми при помилці
+    # (0 - успіх, 1 - помилка)
+    try:
+        # connect() просто встановлює TCP-з'єднання, нічого не запитуючи
+        await tg_client.connect()
+
+        # Перевіряємо, чи підхопився наш файл сесії
+        if not await tg_client.is_user_authorized():
+            print(f"Error: {SESSION_NAME}.session is not found or it is invalid.")
+            sys.exit(1)
+
+        print("Login successful!")
+    except errors.FloodWaitError as e:
+        print(f"FluidWaitError! Telegram asks you to wait {e.seconds}s.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
