@@ -55,7 +55,7 @@ async def get_pulse(
             # Дістаємо всі унікальні дайджести з оброблених постів
             summaries = await summary_repo.get_summaries_by_post_ids(old_ids)
 
-            final_report += f"📜 <i>From archive:</i>\n"
+            final_report += f"📜 <i>(From archive):</i>\n"
             for summary in summaries:
                 final_report += (f" • <b>{summary.topic}</b>\n"
                                  f"{summary.content}\n\n")
@@ -68,6 +68,7 @@ async def get_pulse(
 
             # Текстового контенту немає, переходимо до наступного каналу
             if not raw_content:
+                final_report += "There is no text"
                 continue
 
             # Отримуємо дайджест по контенту
@@ -88,7 +89,7 @@ async def get_pulse(
 
         final_report += '\n'
 
-    final_report += "<i>Залишайся на пульсі з @vantage_pulse_bot!</i>⚡️"
+    final_report += "<i>Залишайся на пульсі з @vantage_pulse_bot!</i>⚡"
 
     # Отвечаем юзеру
     await callback.message.edit_text(text=final_report, parse_mode="HTML")
