@@ -33,7 +33,9 @@ class ChannelRepository:
 
     async def set_last_message_id(self, channel_id: int, message_id: int):
         channel = await self.get_channel_by_id(channel_id)
-        if message_id > channel.last_message_id:
+        if not channel.last_message_id:
+            channel.last_message_id = message_id
+        elif message_id > channel.last_message_id:
             channel.last_message_id = message_id
 
         await self.__session.commit()
