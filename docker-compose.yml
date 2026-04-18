@@ -1,0 +1,12 @@
+services:
+  pulse-bot:
+    build: .
+    container_name: pulse_bot_container
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
