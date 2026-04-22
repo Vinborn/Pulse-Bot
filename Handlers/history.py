@@ -9,7 +9,7 @@ from Repositories.summary import SummaryRepository
 router = Router()
 
 @router.callback_query(F.data == "history_list")
-@router.message(F.text.upper() == "HISTORY")
+@router.message(F.text == "HISTORY")
 async def history(update: types.Message | types.CallbackQuery, subscription_repo: UserSubscriptionRepository):
     user_id = update.from_user.id
     # получаем список каналов
