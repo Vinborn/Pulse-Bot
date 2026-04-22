@@ -10,6 +10,7 @@ def main_menu_kb():
                 KeyboardButton(text='HISTORY') # Кнопка для просмотра всех предидущих дайджестов для всех каналов
             ],
             [KeyboardButton(text='ADD')], # Добавить канал/канали
-            [KeyboardButton(text='CHANNEL LIST')] # Управление каналами
+            [KeyboardButton(text='CHANNEL LIST')], # Управление каналами
+            [KeyboardButton(text='LANGUAGE')],
         ]
     )
