@@ -31,3 +31,8 @@ class UserRepository:
     async def create_user(self, tg_id: int, username: str, language: str) -> Any:
         user = User(tg_id=tg_id, username=username, language=language)
         self.__session.add(user)
+
+    async def change_language(self, tg_id: int, new_language: str):
+        user = await self.get_user_by_tg_id(tg_id)
+
+        user.language = new_language
