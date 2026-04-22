@@ -7,6 +7,7 @@ from Handlers.add import router as add_router
 from Handlers.channel_list import router as list_router
 from Handlers.get_pulse import router as pulse_router
 from Handlers.history import router as history_router
+from Handlers.change_language import router as change_language_router
 
 def register_routes(dp: Dispatcher):
     dp.include_router(start_router)
@@ -14,4 +15,5 @@ def register_routes(dp: Dispatcher):
     dp.include_router(list_router)
     dp.include_router(pulse_router)
     dp.include_router(history_router)
+    dp.include_router(change_language_router)
     print("All routes registered")
