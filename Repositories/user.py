@@ -36,3 +36,5 @@ class UserRepository:
         user = await self.get_user_by_tg_id(tg_id)
 
         user.language = new_language
+
+        await self.__session.commit()
