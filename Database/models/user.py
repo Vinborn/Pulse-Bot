@@ -9,4 +9,5 @@ class User(BaseModel):
 
     tg_id: Mapped[int] = mapped_column(BigInteger, unique=True)
     username: Mapped[str | None]
-    language: Mapped[str]
+    tg_language: Mapped[str]
+    ui_language: Mapped[str]
