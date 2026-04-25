@@ -8,5 +8,6 @@ services:
     volumes:
       - .:/app
       - ./data:/app/data
+      - ./locales:/app/locales
     environment:
       - PYTHONUNBUFFERED=1
