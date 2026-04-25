@@ -10,7 +10,7 @@ router = Router()
 
 @router.callback_query(F.data == "channel_list")
 @router.message(F.text.upper() == "CHANNEL LIST")
-async def channel_list(update: types.Message | types.CallbackQuery, subscription_repo: UserSubscriptionRepository):
+async def channel_list(update: types.Message | types.CallbackQuery, subscription_repo: UserSubscriptionRepository, translator: callable):
     user_id = update.from_user.id
     # получаем список каналов
     channels = await subscription_repo.get_sub_channels(user_id)
@@ -19,26 +19,27 @@ async def channel_list(update: types.Message | types.CallbackQuery, subscription
     if isinstance(update, types.Message):
         if channels:
             await update.answer(
-            "Ось канали, на які я підписан. Ти можеш керувати підписками або переглянути статистику кожного.",
+            translator("channel_list")["channels"],
                 reply_markup=generate_channel_list_kb(channels)
             )
         else:
-            await update.answer("Список каналів порожній! Спочатку додайте канал")
+            await update.answer(translator("channel_list")["empty"])
     # или юзер нажал кнопку "Back"
     else:
         await update.message.edit_text(
-            "Ось канали, на які я підписан. Ти можеш керувати підписками або переглянути статистику кожного.",
+            translator("channel_list")["channels"],
             reply_markup=generate_channel_list_kb(channels)
         )
+        await update.answer()
 
 @router.callback_query(ChannelInfoCBData.filter()) # когда юзер нажал на канал из списка
-async def channel_info(callback: types.CallbackQuery, callback_data: ChannelInfoCBData, channel_repo: ChannelRepository):
+async def channel_info(callback: types.CallbackQuery, callback_data: ChannelInfoCBData, channel_repo: ChannelRepository, translator: callable):
     # достаем нужний канал по id
     channel = await channel_repo.get_channel_by_id(callback_data.channel_id)
 
     # переписиваем прошлое сообщение от бота, информацией о конкретном канале
     await callback.message.edit_text(
-        text=f"Назва каналу: «{channel.title}»\nОригінальне посилання: {channel.tg_link}",
+        text=f"{translator("channel_list")["channel_info"]} {channel.tg_link}",
         # создаеться кнопка назад, которая возвращет тебя к основному листу
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
@@ -51,15 +52,16 @@ async def channel_info(callback: types.CallbackQuery, callback_data: ChannelInfo
             ]
         )
     )
+    await callback.answer()
 
 @router.callback_query(ChannelDeleteCBData.filter()) # когда юзер нажал на крестик для удаления определеного канала
-async def delete_confirm(callback: types.CallbackQuery, callback_data: ChannelDeleteCBData, channel_repo: ChannelRepository):
+async def delete(callback: types.CallbackQuery, callback_data: ChannelDeleteCBData, channel_repo: ChannelRepository, translator: callable):
     # узнаем какой канал удалить
     channel = await channel_repo.get_channel_by_id(callback_data.channel_id)
 
     # удостоверяемся что юзер нажал не случайно
     await callback.message.edit_text(
-        text=f"Чи точно ви хочете видалити канал «{channel.title}»?",
+        text=f"{translator("channel_list")["delete"]} «{channel.title}»?",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -75,24 +77,27 @@ async def delete_confirm(callback: types.CallbackQuery, callback_data: ChannelDe
             ]
         )
     )
+    await callback.answer()
 
 @router.callback_query(F.data.startswith("confirm_del_")) # когда юзер нажал на кнопку Confirm
-async def channel_delete(callback: types.CallbackQuery, subscription_repo: UserSubscriptionRepository):
+async def delete_confirm(callback: types.CallbackQuery, subscription_repo: UserSubscriptionRepository, translator: callable):
     ch_id = int(callback.data.split("_")[2])
     user_id = callback.from_user.id
 
     # удаляем канал из User Subscriptions, не затрагивая таблицу "channels"
     await subscription_repo.delete_subscription(user_id=user_id, channel_id=ch_id)
-    await callback.answer("Канал успішно видалено!")
+    await callback.answer(translator("channel_list")["delete_confirm"])
 
     new_channels = await subscription_repo.get_sub_channels(user_id)
 
     # показиваем новий список каналов, если список не пустой
     if new_channels:
         await callback.message.edit_text(
-            "Ось канали, на які я підписан. Ти можеш керувати підписками або переглянути статистику кожного.",
+            translator("channel_list")["channels"],
             reply_markup=generate_channel_list_kb(new_channels))
 
     # а если нету ничего в списке, то просим добавить канал
     else:
-        await callback.message.edit_text("Список каналів порожній! Спочатку додайте канал")
+        await callback.message.edit_text(translator("channel_list")["empty"])
+
+    await callback.answer()

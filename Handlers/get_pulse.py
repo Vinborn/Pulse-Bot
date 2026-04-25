@@ -13,17 +13,17 @@ from AI.brain import make_digest
 router = Router()
 
 @router.message(F.text == "GET PULSE")
-async def get_post_limit(message: types.Message, subscription_repo: UserSubscriptionRepository):
+async def get_post_limit(message: types.Message, subscription_repo: UserSubscriptionRepository, translator: callable):
     user_id = message.from_user.id
     channels = await subscription_repo.get_sub_channels(user_id)
 
     if channels:
         await message.answer(
-            text="👇Вибери кількість постів які мені потрібно проаналізувати:",
-            reply_markup=post_limit_kb()
+            text=f"👇{translator("get_pulse")["post_limit"]}",
+            reply_markup=post_limit_kb(translator)
         )
     else:
-        await message.answer("Каналів для аналізу не знайдено! Спочатку додайте канал.")
+        await message.answer(translator("get_pulse")["empty"])
 
 @router.callback_query(PostLimitCBData.filter())
 async def get_pulse(
@@ -32,12 +32,13 @@ async def get_pulse(
         channel_repo: ChannelRepository,
         post_repo: PostRepository,
         summary_repo: SummaryRepository,
-        subscription_repo: UserSubscriptionRepository
+        subscription_repo: UserSubscriptionRepository,
+        translator: callable
 ):
     user_id = callback.from_user.id
     channels = await subscription_repo.get_sub_channels(user_id)
 
-    await callback.answer("Аналізую свіжі пости...")
+    await callback.answer(translator("get_pulse")["process"])
     final_report = ""
 
     for channel in channels:
@@ -55,7 +56,7 @@ async def get_pulse(
             # Дістаємо всі унікальні дайджести з оброблених постів
             summaries = await summary_repo.get_summaries_by_post_ids(old_ids)
 
-            final_report += f"📜 <i>(From archive):</i>\n"
+            final_report += f"📜 <i>({translator("get_pulse")["archive"]}):</i>\n"
             for summary in summaries:
                 final_report += (f" • <b>{summary.topic}</b>\n"
                                  f"{summary.content}\n\n")
@@ -77,7 +78,7 @@ async def get_pulse(
             # Обробляємо всі події в дайджесті
             events = digest["events"]
             if events:
-                final_report += f"🔥 <i>Latest news:</i>\n"
+                final_report += f"🔥 <i>{translator("get_pulse")["latest"]}</i>\n"
 
                 for event in events:
                     # Додаємо щойно створений дайджест події до повідомлення
@@ -89,7 +90,7 @@ async def get_pulse(
 
         final_report += '\n'
 
-    final_report += "<i>Залишайся на пульсі з @vantage_pulse_bot!</i>⚡"
+    final_report += f"<i>{translator("get_pulse")["signature"]}</i>⚡"
 
     # Отвечаем юзеру
     await callback.message.edit_text(text=final_report, parse_mode="HTML")

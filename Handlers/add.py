@@ -15,28 +15,27 @@ router = Router()
 CHANNEL_RE = r"(?:https?://t\.me/|@)([a-zA-Z0-9_]{5,})"
 
 @router.message(F.text == "ADD")
-async def add(message: types.Message, state: FSMContext):
+async def add(message: types.Message, state: FSMContext, translator: callable):
     await state.set_state(AddChannel.waiting_for_link)
     await message.answer(
-        "↔️ Готовий розширити твій інформаційний потік!\n"
-        "Надішли мені посилання на Telegram-канал (наприклад, @channel_name або t.me/link)."
+        f"↔️ {translator("add")["wait_for_link"]}"
     )
 
 # сработает ТОЛЬКО в состоянии ожидания ссылки
 @router.message(AddChannel.waiting_for_link)
-async def handle_channel_link(message: types.Message, state: FSMContext, channel_repo: ChannelRepository, subscription_repo: UserSubscriptionRepository):
+async def handle_channel_link(message: types.Message, state: FSMContext, channel_repo: ChannelRepository, subscription_repo: UserSubscriptionRepository, translator: callable):
     """ЛОГИКА ДОБАВЛЕНИЯ КАНАЛА В БАЗУ"""
     # Знаходимо посилання на канал
     channel_match = re.search(CHANNEL_RE, message.text)
 
     if channel_match:
         link = channel_match.group(0)
-        await message.answer(f"Почав обробку каналу...")
+        await message.answer(translator("add")["process"])
 
         join = await join_channel(link)
         if join:
             # Перевіряємо чи можливо зайти на канал
-            await message.answer("Такий username ніхто не використовує!")
+            await message.answer(translator("add")["not_username"])
             await state.clear()
             return
 
@@ -52,12 +51,12 @@ async def handle_channel_link(message: types.Message, state: FSMContext, channel
 
         if not user_subscribed:
             await subscription_repo.create_subscription(user_id=user_id, channel_id=channel_tg_id)
-            await message.answer("Канал успішно додано!")
+            await message.answer(translator("add")["add_success"])
         else:
-            await message.answer("Канал вже існує!")
+            await message.answer(translator("add")["exists"])
 
     else:
-        await message.answer("Такого каналу не існує або він закритий!")
+        await message.answer(translator("add")["not_exist_or_private"])
 
     # сбрасиваем состояние
     await state.clear()

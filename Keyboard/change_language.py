@@ -18,4 +18,11 @@ def change_language_kb():
         )
     )
 
+    keyboard.row(
+        InlineKeyboardButton(
+            text="Russian",
+            callback_data='lan_ru'
+        )
+    )
+
     return keyboard.as_markup()

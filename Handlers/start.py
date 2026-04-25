@@ -8,17 +8,13 @@ from Repositories.user import UserRepository
 router = Router()
 
 @router.message(Command("start"))
-async def start_bot(message: types.Message, state: FSMContext, user_repo: UserRepository):
+async def start_bot(message: types.Message, state: FSMContext, user_repo: UserRepository, translator: callable):
     """ЛОГИКА КОМАНДИ СТАРТ"""
     await user_repo.create_or_update_user(
-        message.from_user.id,
-        message.from_user.username,
-        message.from_user.language_code
+        tg_id=message.from_user.id,
+        username=message.from_user.username,
+        tg_lang=message.from_user.language_code,
+        ui_lang=message.from_user.language_code
     )
     await state.clear()
-    await message.answer(
-      f"Привіт! Я — Pulse Bot 🤖.\n"
-      f"Я допоможу тобі тримати руку на пульсі головних новин без зайвого шуму.\n"
-      f"Просто додай канал, і я почну готувати для тебе дайджест найцікавішого!",
-        reply_markup=main_menu_kb()
-    )
+    await message.answer(text=translator("start"), reply_markup=main_menu_kb())
