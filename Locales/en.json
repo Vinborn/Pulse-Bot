@@ -1,0 +1,46 @@
+{
+  "start": "Hi! I'm — Pulse Bot 🤖.\nI will help you keep your finger on the pulse of the main news without the extra noise.\nJust add a channel, and I'll start preparing a digest of the most interesting stuff for you!",
+  "get_pulse": {
+    "post_limit":"Select the number of posts for me to analyze:",
+    "empty":"No channels found for analysis! Please add a channel first.",
+    "process":"Analyzing recent posts...",
+    "archive":"From archive",
+    "latest":"Latest news:",
+    "signature":"Stay on the pulse with @vantage_pulse_bot!"
+  },
+  "post_number": {
+    "3": " 3 posts",
+    "7": " 7 posts",
+    "10": " 10 posts"
+  },
+  "history": {
+    "channels":"This is the knowledge archive. Here are all the digests I've prepared for you before. What would you like to review?",
+    "empty": "The channel list is empty! Add a channel first.",
+    "summaries":"All digests are sorted by creation date. Which date would you like to view?",
+    "summaries_empty": "There are no digests yet! Create new digests",
+    "summary":"Summary date"
+  },
+  "add": {
+    "wait_for_link": "Ready to expand your information flow!\nSend me a link to a Telegram channel (e.g., @channel_name or t.me/link).",
+    "process": "Processing the channel...",
+    "add_success": "Channel added successfully!",
+    "exists": "Channel already exists!",
+    "not_username": "This username is not in use!",
+    "not_exist_or_private": "This channel doesn't exist or is private!"
+  },
+  "channel_list": {
+    "channels": "Here are the channels I'm subscribed to. You can manage subscriptions or view statistics for each.",
+    "empty": "The channel list is empty! Add a channel first.",
+    "channel_info": "Original link:",
+    "delete": "Are you sure you want to delete the channel?",
+    "delete_confirm": "Channel deleted successfully!"
+  },
+  "settings": {
+    "change_language": "Here you can change the interface and digest text language:",
+    "change_language_success": "Language changed successfully."
+  },
+  "back": "Back",
+  "back_to_channels": "Back to channels",
+  "next": "Next",
+  "prev": "Prev"
+}
