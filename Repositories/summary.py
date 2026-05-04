@@ -12,11 +12,12 @@ class SummaryRepository:
     def __init__(self, session: AsyncSession):
         self.__session = session
 
-    async def create_summary(self, channel_id: int, topic: str, content: str, last_included_post_id: int, summary_date: date, created_at: datetime):
+    async def create_summary(self, channel_id: int, topic: str, content: str, user_lang: str, last_included_post_id: int, summary_date: date, created_at: datetime):
         summary = Summary(
             channel_id=channel_id,
             topic=topic,
             content=content,
+            language=user_lang,
             last_included_post_id=last_included_post_id,
             summary_date=summary_date,
             created_at=created_at
@@ -24,17 +25,17 @@ class SummaryRepository:
         self.__session.add(summary)
         return summary
 
-    async def get_summary_by_post_id(self, post_id: int) -> Summary | None:
-        statement = select(Summary).where(Summary.last_included_post_id == post_id)
+    async def get_summary_by_post_id(self, post_id: int, user_lang: str) -> Summary | None:
+        statement = select(Summary).where(Summary.last_included_post_id == post_id, Summary.language == user_lang)
         result = await self.__session.execute(statement)
         return result.scalar()
 
-    async def get_summaries_by_channel_id(self, channel_id: int) -> list[Summary]:
-        statement = select(Summary).where(Summary.channel_id == channel_id).order_by(Summary.summary_date.desc())
+    async def get_summaries_by_channel_id(self, channel_id: int, user_lang: str) -> list[Summary]:
+        statement = select(Summary).where(Summary.channel_id == channel_id, Summary.language == user_lang).order_by(Summary.summary_date.desc())
         result = await self.__session.execute(statement)
         return result.scalars().all()
 
-    async def get_summaries_by_post_ids(self, post_ids: list[int]) -> list[Summary]:
+    async def get_summaries_by_post_ids(self, post_ids: list[int], user_lang: str) -> list[Summary]:
         """Повертає унікальний список Summary для списку ID постів."""
         if not post_ids:
             return []
@@ -44,7 +45,10 @@ class SummaryRepository:
             # Приєднуємо таблицю зв'язків SummaryPost
             .join(SummaryPost)
             # Фільтруємо списком постів
-            .where(Summary.last_included_post_id.in_(post_ids))
+            .where(
+                Summary.language == user_lang,
+                Summary.last_included_post_id.in_(post_ids)
+            )
             .distinct()
         )
 
@@ -52,7 +56,7 @@ class SummaryRepository:
 
         return result.scalars().all()
 
-    async def save_new_summaries(self, channel_id: int, events: list[dict]):
+    async def save_new_summaries(self, channel_id: int, user_lang: str, events: list[dict]):
         """
         Атомарно зберігає нові дайджести та створює зв'язки з усіма відповідними постами.
         """
@@ -70,7 +74,7 @@ class SummaryRepository:
             last_included_post_id = (max(post_ids))
 
             # Створюємо об'єкт дайджесту
-            summary = await self.create_summary(channel_id=channel_id, topic=event["topic"], content=event["result"], last_included_post_id=last_included_post_id, summary_date=event_date, created_at=datetime.now())
+            summary = await self.create_summary(channel_id=channel_id, topic=event["topic"], content=event["result"], user_lang=user_lang, last_included_post_id=last_included_post_id, summary_date=event_date, created_at=datetime.now())
             # Виконуємо flush, щоб отримати ID дайджесту, не закриваючи транзакцію
             await self.__session.flush()
 
