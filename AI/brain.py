@@ -10,31 +10,37 @@ client = AsyncOpenAI(
 )
 
 SYSTEM_PROMPT = """
-Ты — профессиональный контент-аналитик Pulse Bot. Твоя задача — проанализировать массив текста из Telegram-канала и составить краткий, живой дайджест.
+You are a professional content analyst for Pulse Bot. Your task is to analyze a block of text from a Telegram channel and compile a brief, live digest.
 
-ВАЖНО: массив текста разделен метками [POST ID {ID} {date}]
+IMPORTANT: The text block is separated by tags [POST ID {ID} {date}]
 
-ПРАВИЛА ОБРАБОТКИ:
-1. КЛАССИФИКАЦИЯ: Если несколько постов описывают одно событие (например, анонс стрима и последующий перенос времени), объедини их в одну сущность. Если посты о разном — создай разные блоки.
-2. ФИЛЬТРАЦИЯ: Полностью игнорируй рекламу (казино, ставки, промокоды, внешние ссылки на товары), спам и бессмысленные сообщения (просто стикеры или приветствия без контекста).
-3. СЖАТИЕ: Описывай суть события максимально лаконично(2-7 предложений).
-4. СТИЛЬ: Используй подходящие эмодзи для живости, но не переспамь ими.
-5. ДАТЫ: СТРОГО извлекай дату из метки [POST ID ... {date}] для каждого события. Если событие объединяет несколько постов, используй дату самого раннего поста как дату начала события.
+PROCESSING RULES:
+1. CLASSIFICATION: If multiple posts describe a single event (e.g., a stream announcement and a later time change) combine them into a single entity. If the posts are about different things, create separate blocks.
+2. FILTERING: Completely ignore advertisements (casinos, betting, promo codes, external links to products), spam, and meaningless messages (just stickers or greetings without context).
+3. SUMMARY: Describe the essence of the event as concisely as possible (2–7 sentences).
+4. STYLE: Use appropriate emojis to add liveliness, but don’t overuse them.
+5. DATES: STRICTLY extract the date from the [POST ID ... {date}] tag for each event. If an event spans multiple posts, use the date of the earliest post as the event’s start date.
 
-ФОРМАТ ОТВЕТА:
-Ты должен отвечать СТРОГО в формате JSON. Никакого лишнего текста до или после JSON.
-Структура JSON:
+RESPONSE FORMAT:
+You must respond STRICTLY in JSON format. No extra text before or after the JSON.
+JSON structure:
 {
-  "events": [
+  “events”: [
     {
-      "event_date": "YYYY-MM-DD",
-      "topic": "Заголовок события с эмодзи",
-      "result": "Краткое описание сути 2-7 предложений",
-      "list": "Список POST ID которие вошли в событие"
+      “event_date”: “YYYY-MM-DD”,
+      “topic”: “Event title with emojis”,
+      “result”: “Brief description of the event (2–7 sentences)”,
+      “list”: “List of POST IDs included in the event”
     }
   ]
 }
 """
+
+LANGUAGE_MAP = {
+    'en': 'English',
+    'ukr': 'Ukrainian',
+    'ru': 'Russian',
+}
 
 async def content_process(content: str) -> str:
     """
@@ -52,6 +58,11 @@ async def content_process(content: str) -> str:
         r'\bпривет\b',
         r'\bвсем привет\b',
         r'\bкак вы\b',
+        r'\bHi everyone\b',
+        r'\bHi\b',
+        r'\bHello\b',
+        r'\bWhats up\b',
+        r'\bHow are you doing\b'
     ]
     stop_pattern = '|'.join(stop_words)
     clean_content = re.sub(stop_pattern, '', content, flags=re.IGNORECASE)
@@ -76,8 +87,10 @@ async def content_process(content: str) -> str:
 
     return clean_content.strip()
 
-async def make_digest(channel_title: str, raw_content: str) -> dict:
+async def make_digest(channel_title: str, raw_content: str, lang: str) -> dict:
     """Перетворює сирий контент постів у дайджест в форматі JSON"""
+    # встановлюємо мову дайджесту, по дефолту англійська
+    target_lang = f"\nIMPORTANT: The language of the digest MUST be {LANGUAGE_MAP.get(lang, 'English')}"
 
     # Оброблюємо сирий контент постів
     processed_content = await content_process(content=raw_content)
@@ -90,7 +103,7 @@ async def make_digest(channel_title: str, raw_content: str) -> dict:
             model="google/gemini-2.0-flash-lite-001",
             # Відправляємо промпт для моделі й контент постів
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM_PROMPT + target_lang},
                 {"role": "user", "content": user_prompt}
             ],
             # Повинні отримати у відповідь JSON об'єкт
