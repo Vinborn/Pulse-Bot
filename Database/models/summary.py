@@ -13,6 +13,7 @@ class Summary(BaseModel):
     topic: Mapped[str] = mapped_column(String(255))
     content: Mapped[str]
     last_included_post_id: Mapped[int] = mapped_column(BigInteger)
+    language: Mapped[str] = mapped_column(String(10), nullable=False, server_default='en')
 
     summary_date: Mapped[datetime] = mapped_column(nullable=False)
     created_at: Mapped[datetime] = mapped_column(nullable=False)
