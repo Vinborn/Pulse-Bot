@@ -6,6 +6,7 @@ from Repositories.channel import ChannelRepository
 from Repositories.post import PostRepository
 from Repositories.subscription import UserSubscriptionRepository
 from Repositories.summary import SummaryRepository
+from Repositories.user import UserRepository
 
 from scraper import collect_posts_from_channel, fetch_content_from_posts
 from AI.brain import make_digest
@@ -33,9 +34,12 @@ async def get_pulse(
         post_repo: PostRepository,
         summary_repo: SummaryRepository,
         subscription_repo: UserSubscriptionRepository,
+        user_repo: UserRepository,
         translator: callable
 ):
     user_id = callback.from_user.id
+
+    user_lang = await user_repo.get_language(user_id)
     channels = await subscription_repo.get_sub_channels(user_id)
 
     await callback.answer(translator("get_pulse")["process"])
@@ -48,13 +52,13 @@ async def get_pulse(
         all_ids = await collect_posts_from_channel(channel_repo, post_repo, channel.tg_id, limit=callback_data.limit)
 
         # Знаходимо пости, які з них нові, а які вже оброблені
-        new_ids = await post_repo.filter_unprocessed_posts(channel.tg_id, new_post_ids=all_ids)
-        old_ids = [post_id for post_id in all_ids if post_id not in new_ids]
+        new_ids = await post_repo.filter_unprocessed_posts(channel_id=channel.tg_id, all_ids=all_ids)
+        cached_ids = [post_id for post_id in all_ids if post_id not in new_ids]
 
         # Обробляємо СТАРЕ
-        if old_ids:
+        if cached_ids:
             # Дістаємо всі унікальні дайджести з оброблених постів
-            summaries = await summary_repo.get_summaries_by_post_ids(old_ids)
+            summaries = await summary_repo.get_summaries_by_post_ids(post_ids=cached_ids, user_lang=user_lang)
 
             final_report += f"📜 <i>({translator("get_pulse")["archive"]}):</i>\n"
             for summary in summaries:
@@ -73,7 +77,7 @@ async def get_pulse(
                 continue
 
             # Отримуємо дайджест по контенту
-            digest = await make_digest(channel_title=channel.title, raw_content=raw_content)
+            digest = await make_digest(channel_title=channel.title, raw_content=raw_content, lang=user_lang)
 
             # Обробляємо всі події в дайджесті
             events = digest["events"]
@@ -86,7 +90,7 @@ async def get_pulse(
                                      f"{event["result"]}\n\n")
 
                 # Додаємо всі дайджести всіх подій до бази
-                await summary_repo.save_new_summaries(channel_id=channel.tg_id, events=events)
+                await summary_repo.save_new_summaries(channel_id=channel.tg_id, user_lang=user_lang, events=events)
 
         final_report += '\n'
 
