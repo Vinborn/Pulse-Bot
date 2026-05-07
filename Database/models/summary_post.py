@@ -1,6 +1,6 @@
 from Database.models import BaseModel
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import ForeignKey, BigInteger
+from sqlalchemy import ForeignKey, BigInteger, String
 
 class SummaryPost(BaseModel):
     __tablename__ = "summary_posts"
