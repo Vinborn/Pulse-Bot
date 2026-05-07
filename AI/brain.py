@@ -87,7 +87,7 @@ async def content_process(content: str) -> str:
 
     return clean_content.strip()
 
-async def make_digest(channel_title: str, raw_content: str, lang: str) -> dict:
+async def make_digest(channel_title: str, raw_content: str, lang: str) -> dict[str, list[dict[str, str]]]:
     """Перетворює сирий контент постів у дайджест в форматі JSON"""
     # встановлюємо мову дайджесту, по дефолту англійська
     target_lang = f"\nIMPORTANT: The language of the digest MUST be {LANGUAGE_MAP.get(lang, 'English')}"
