@@ -43,58 +43,37 @@ async def get_pulse(
     channels = await subscription_repo.get_sub_channels(user_id)
 
     await callback.answer(translator("get_pulse")["process"])
-    final_report = ""
+    report_parts = []
 
     for channel in channels:
-        final_report += f"📌  <b>{channel.title}</b>:\n"
+        report_parts.append(f"📌  <b>{channel.title}</b>:",)
 
         # Збираємо пости, кількість яких вказав юзер
         all_ids = await collect_posts_from_channel(channel_repo, post_repo, channel.tg_id, limit=callback_data.limit)
 
-        # Знаходимо пости, які з них нові, а які вже оброблені
-        new_ids = await post_repo.filter_unprocessed_posts(channel_id=channel.tg_id, all_ids=all_ids)
-        cached_ids = [post_id for post_id in all_ids if post_id not in new_ids]
+        cache_summaries, new_summaries = await get_or_create_summaries(summary_repo=summary_repo, post_repo=post_repo, channel_id=channel.tg_id, channel_title=channel.title, all_ids=all_ids, user_lang=user_lang)
 
-        # Обробляємо СТАРЕ
-        if cached_ids:
-            # Дістаємо всі унікальні дайджести з оброблених постів
-            summaries = await summary_repo.get_summaries_by_post_ids(post_ids=cached_ids, user_lang=user_lang)
+        # Показуємо юзеру дайджести з БД
+        if cache_summaries:
+            report_parts.append(f"📜 <i>({translator("get_pulse")["archive"]}):</i>")
+            for cache_summary in cache_summaries:
+                report_parts.append(f" • <b>{cache_summary.topic}</b>\n"
+                                    f"{cache_summary.content}\n")
 
-            final_report += f"📜 <i>({translator("get_pulse")["archive"]}):</i>\n"
-            for summary in summaries:
-                final_report += (f" • <b>{summary.topic}</b>\n"
-                                 f"{summary.content}\n\n")
+        # Показуємо юзеру нові дайджести
+        if new_summaries:
+            report_parts.append(f"🔥 <i>{translator("get_pulse")["latest"]}</i>")
+            for new_summary in new_summaries:
+                report_parts.append(f" • <b>{new_summary.get("topic")}</b>\n"
+                                    f"{new_summary.get("result")}\n")
 
-        # Обробляємо НОВЕ
-        if new_ids:
-            # Є нові пости, тому відправляємо їх до LLM
-            # Отримуємо контент по списку нових постів
-            raw_content = await fetch_content_from_posts(post_repo=post_repo, post_ids=new_ids)
+        # додає доп відступ між дайджестами каналів
+        report_parts.append('')
 
-            # Текстового контенту немає, переходимо до наступного каналу
-            if not raw_content:
-                final_report += "There is no text"
-                continue
+    final_report = "\n".join(report_parts)
 
-            # Отримуємо дайджест по контенту
-            digest = await make_digest(channel_title=channel.title, raw_content=raw_content, lang=user_lang)
-
-            # Обробляємо всі події в дайджесті
-            events = digest["events"]
-            if events:
-                final_report += f"🔥 <i>{translator("get_pulse")["latest"]}</i>\n"
-
-                for event in events:
-                    # Додаємо щойно створений дайджест події до повідомлення
-                    final_report += (f" • <b>{event["topic"]}</b>\n"
-                                     f"{event["result"]}\n\n")
-
-                # Додаємо всі дайджести всіх подій до бази
-                await summary_repo.save_new_summaries(channel_id=channel.tg_id, user_lang=user_lang, events=events)
-
-        final_report += '\n'
-
-    final_report += f"<i>{translator("get_pulse")["signature"]}</i>⚡"
+    # Додаємо підпис бота
+    final_report += f"⚡<i>{translator("get_pulse")["signature"]}</i>"
 
     # Отвечаем юзеру
     await callback.message.edit_text(text=final_report, parse_mode="HTML")
