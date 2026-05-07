@@ -98,3 +98,55 @@ async def get_pulse(
 
     # Отвечаем юзеру
     await callback.message.edit_text(text=final_report, parse_mode="HTML")
+
+
+async def get_or_create_summaries(
+        summary_repo: SummaryRepository,
+        post_repo: PostRepository,
+        channel_id: int,
+        channel_title: str,
+        all_ids: list[int],
+        user_lang: str
+):
+    """Для кожного поста/групи постів видати дайджест (готовий чи створити новий)"""
+    # Дістаємо всі унікальні дайджести з БД
+    cache_ids = await summary_repo.get_cache_post_ids(post_ids=all_ids, user_lang=user_lang)
+    cache_summaries = await summary_repo.get_summaries_by_post_ids(post_ids=cache_ids, user_lang=user_lang)
+
+    # Знаходимо пости, які з них нові
+    new_ids = [new_id for new_id in all_ids if new_id not in cache_ids]
+
+    new_summaries: list[dict[str, str]] = []
+
+    # Обробляємо НОВЕ
+    if new_ids:
+        # Отримуємо контент по списку id нових постів
+        raw_content = await fetch_content_from_posts(
+            post_repo=post_repo,
+            post_ids=new_ids
+        )
+
+        # Контент має текст
+        if raw_content:
+            # Отримуємо дайджест по контенту
+            digest = await make_digest(
+                channel_title=channel_title,
+                raw_content=raw_content,
+                lang=user_lang
+            )
+
+            # Обробляємо всі події в дайджесті
+            events = digest.get("events", [])
+
+            if events:
+                # Додаємо всі дайджести всіх подій до бази
+                await summary_repo.save_new_summaries(
+                    channel_id=channel_id,
+                    user_lang=user_lang,
+                    events=events
+                )
+
+                new_summaries = events
+
+    # Повертаємо кортеж в якому є старі та нові дайджести
+    return cache_summaries, new_summaries
