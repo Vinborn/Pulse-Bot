@@ -44,36 +44,3 @@ class PostRepository:
         statement = select(Post).where(channel_id == Post.channel_id).limit(limit).order_by(Post.created_at.desc())
         result = await self.__session.execute(statement)
         return result.scalars().all()
-
-    async def filter_unprocessed_posts(self, channel_id: int, all_ids: list[int]) -> list[int]:
-        """
-        Приймає список постів з Telegram.
-        Повертає список лише тих ПОСТІВ, які ЩЕ НЕ прив'язані до жодного дайджесту.
-        """
-        # Якщо прийшов порожній список, одразу повертаємо порожній
-        if not all_ids:
-            return []
-
-        # Шукаємо "старі" пости, які вже є в базі
-        statement = (
-            select(Post.tg_id)
-            .join(SummaryPost, Post.tg_id == SummaryPost.post_id)
-            .where(
-                Post.channel_id == channel_id,
-                # Шукаємо тільки серед тих ID, які щойно зібрав скрапер
-                Post.tg_id.in_(all_ids)
-            )
-        )
-
-        result = await self.__session.execute(statement)
-
-        # existing_ids міститиме список tg_id, які ВЖЕ оброблені
-        existing_ids = result.scalars().all()
-
-        # Відсіюємо оброблені пости від нових
-        unprocessed_ids = [
-            post_id for post_id in all_ids
-            if post_id not in existing_ids
-        ]
-
-        return unprocessed_ids
