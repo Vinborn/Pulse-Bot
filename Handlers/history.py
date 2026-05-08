@@ -5,6 +5,7 @@ from Keyboard.history_list import generate_history_list_kb, ChannelPulseHistoryC
     generate_ch_pulse_history_kb, PulseInfoCBData, TurnPageCBData
 from Repositories.subscription import UserSubscriptionRepository
 from Repositories.summary import SummaryRepository
+from Repositories.user import UserRepository
 
 router = Router()
 
@@ -33,8 +34,11 @@ async def history(update: types.Message | types.CallbackQuery, subscription_repo
 
 @router.callback_query(TurnPageCBData.filter()) # когда юзер нажал кнопку Next/Prev
 @router.callback_query(ChannelPulseHistoryCBData.filter()) # когда юзер нажал на канал из списка
-async def channel_pulse_history_list(callback_query: types.CallbackQuery, callback_data: ChannelPulseHistoryCBData | TurnPageCBData, summary_repo: SummaryRepository, translator: callable):
-    summaries = await summary_repo.get_summaries_by_channel_id(callback_data.channel_id)
+async def channel_pulse_history_list(callback_query: types.CallbackQuery, callback_data: ChannelPulseHistoryCBData | TurnPageCBData, summary_repo: SummaryRepository, user_repo: UserRepository, translator: callable):
+    user_id = callback_query.from_user.id
+    user_lang = await user_repo.get_language(user_id)
+
+    summaries = await summary_repo.get_summaries_by_channel_id(callback_data.channel_id, user_lang=user_lang)
     current_page = 0
 
     if isinstance(callback_data, TurnPageCBData):
@@ -51,8 +55,11 @@ async def channel_pulse_history_list(callback_query: types.CallbackQuery, callba
         await callback_query.answer()
 
 @router.callback_query(PulseInfoCBData.filter()) # когда юзер нажал на дату дайджеста из списка дайджестов
-async def pulse_info(callback_query: types.CallbackQuery, callback_data: PulseInfoCBData, summary_repo: SummaryRepository, translator: callable):
-    summary = await summary_repo.get_summary_by_post_id(callback_data.post_id)
+async def pulse_info(callback_query: types.CallbackQuery, callback_data: PulseInfoCBData, summary_repo: SummaryRepository, user_repo: UserRepository, translator: callable):
+    user_id = callback_query.from_user.id
+    user_lang = await user_repo.get_language(user_id)
+
+    summary = await summary_repo.get_summary_by_last_included_post_id(callback_data.post_id, user_lang)
 
     await callback_query.message.edit_text(
         f"📌 <b>«{summary.topic}»</b>\n"
